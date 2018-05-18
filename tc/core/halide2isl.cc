@@ -512,6 +512,9 @@ std::vector<Reduction> findReductions(const Stmt& s) {
     // that the variables of the additional For nodes surrounding
     // the update node are all reduction variables.
     bool isValidReductionUpdate(const Provide* op) {
+      if (!isReductionUpdate(op)) {
+        return false;
+      }
       const auto& opInitVars = initVars[op->name];
       auto n = opInitVars.size();
       if (vars.size() <= n) {
@@ -548,20 +551,16 @@ std::vector<Reduction> findReductions(const Stmt& s) {
       if (isReductionInit(op)) {
         reductions[op->name].init = op;
         initVars[op->name] = vars;
-      } else if (isReductionUpdate(op)) {
-        if (isValidReductionUpdate(op)) {
-          auto& p = reductions[op->name];
-          CHECK(p.init.defined())
-              << "Missing reduction init or (unsupported) multiple updates";
-          CHECK(!p.update.defined())
-              << "Multiple reduction updates not yet implemented";
-          p.update = op;
-          auto n = initVars[op->name].size();
-          p.dims.resize(vars.size() - n);
-          std::iota(p.dims.begin(), p.dims.end(), n);
-        } else {
-          reductions.erase(op->name);
-        }
+      } else if (isValidReductionUpdate(op)) {
+        auto& p = reductions[op->name];
+        CHECK(p.init.defined())
+            << "Missing reduction init or (unsupported) multiple updates";
+        CHECK(!p.update.defined())
+            << "Multiple reduction updates not yet implemented";
+        p.update = op;
+        auto n = initVars[op->name].size();
+        p.dims.resize(vars.size() - n);
+        std::iota(p.dims.begin(), p.dims.end(), n);
       }
     }
 
@@ -578,7 +577,9 @@ std::vector<Reduction> findReductions(const Stmt& s) {
 
   std::vector<Reduction> result;
   for (auto p : finder.reductions) {
-    result.push_back(p.second);
+    if (p.second.init.defined() && p.second.update.defined()) {
+      result.push_back(p.second);
+    }
   }
   return result;
 }
