@@ -131,6 +131,21 @@ isl::id statementId(const Scop& scop, const Halide::Internal::Stmt& stmt) {
 
 } // namespace
 
+isl::union_set allReductionUpdates(const Scop& scop) {
+  auto root = scop.scheduleRoot();
+  auto domain = activeDomainPoints(root, root);
+  auto update = isl::union_set::empty(domain.get_space());
+  for (auto set : domain.get_set_list()) {
+    auto setId = set.get_tuple_id();
+    Halide::Internal::Stmt initStmt;
+    std::vector<size_t> reductionDims;
+    if (isReductionUpdateId(setId, scop, initStmt, reductionDims)) {
+      update = update.unite(set);
+    }
+  }
+  return update;
+}
+
 std::pair<isl::union_set, isl::union_set> reductionInitsUpdates(
     isl::union_set domain,
     const Scop& scop) {

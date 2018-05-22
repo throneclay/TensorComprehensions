@@ -332,8 +332,14 @@ isl::schedule_constraints makeScheduleConstraints(
     const Scop& scop,
     const SchedulerOptionsView& schedulerOptions,
     isl::union_set restrictDomain = isl::union_set()) {
+  // Ignore reduction dependences for validity.
+  // That is, allow the order of the update statement instances
+  // to be changed.
+  // This assumes that reduction update statements only write
+  // to the tensor element that stores the result of the reduction.
+  auto validity = scop.dependences.subtract(scop.reductionDependences);
   auto constraints = isl::schedule_constraints::on_domain(scop.domain())
-                         .set_validity(scop.dependences)
+                         .set_validity(validity)
                          .set_proximity(scop.dependences)
                          .set_coincidence(scop.dependences);
   if (restrictDomain) {
@@ -375,6 +381,40 @@ isl::schedule_constraints makeScheduleConstraints(
 
   return constraints;
 }
+
+/*
+ * Construct the pairs of instances of "updates" that live
+ * in a shared space and that (may) write to the same tensor element
+ * through "writes".
+ * Assuming that the reduction update statements in "updates"
+ * only write to the tensor element that stores the result of the reduction,
+ * this corresponds to all dependences that may occur between
+ * such pairs of instances.
+ *
+ * In particular, construct pairs of update statement instances
+ *
+ *  D -> D'
+ *
+ * add the elements written by the first instances
+ *
+ *  D -> [D' -> A]
+ *
+ * make sure the element in D' accesses the same element and
+ * then project out the accessed elements.
+ */
+isl::union_map computeReductionDependences(
+    isl::union_set updates,
+    isl::union_map writes) {
+  auto sameSpace = isl::union_map::empty(updates.get_space());
+  for (auto set : updates.get_set_list()) {
+    sameSpace = sameSpace.unite(set.product(set).unwrap());
+  }
+  auto reductionDependences = sameSpace.range_product(writes);
+  reductionDependences = reductionDependences.intersect_range(writes.wrap());
+  reductionDependences = reductionDependences.range_factor_domain();
+  return reductionDependences;
+}
+
 } // namespace
 
 void Scop::computeAllDependences() {
@@ -386,6 +426,9 @@ void Scop::computeAllDependences() {
   // WAR and WAW
   auto falseDeps =
       computeDependences(allWrites.unite(allReads), allWrites, schedule);
+
+  auto updates = allReductionUpdates(*this).universe();
+  reductionDependences = computeReductionDependences(updates, allWrites);
 
   dependences = flowDeps.unite(falseDeps).coalesce();
 }

@@ -25,6 +25,9 @@
 namespace tc {
 namespace polyhedral {
 
+// Return the set of all update statement instances in "scop".
+isl::union_set allReductionUpdates(const Scop& scop);
+
 // Return the union of the reduction init statements as well as
 // the union of the reduction update statements
 // that appear in "domain", assuming "domain" only contains
