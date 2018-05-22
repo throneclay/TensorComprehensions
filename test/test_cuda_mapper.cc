@@ -856,6 +856,41 @@ def fun(float(N) I) -> (O) {
   EXPECT_TRUE(code.find("O[0] = (O") != std::string::npos);
 }
 
+/*
+ * Check that a 2D mean produce a reduction library call.
+ * In practice, check that the library call appears in the code.
+ */
+TEST_F(PolyhedralMapperTest, Mean2D) {
+  string tc = R"TC(
+def fun(float(N, K) I) -> (O) {
+    O(n) +=! I(n, r_n)
+    O(n) = O(n) / (K)
+}
+)TC";
+  auto mappingOptions =
+      DefaultOptions()
+          .outerScheduleFusionStrategy(tc::FusionStrategy::Preserve3Coincident)
+          .outerScheduleAllowSkewing(false)
+          .outerSchedulePositiveOrthant(true)
+          .intraTileScheduleFusionStrategy(tc::FusionStrategy::Min)
+          .intraTileScheduleAllowSkewing(false)
+          .intraTileSchedulePositiveOrthant(true)
+          .fixParametersBeforeScheduling(false)
+          .tile(18, 32)
+          .unroll(16)
+          .tileImperfectlyNested(false)
+          .matchLibraryCalls(true)
+          .mapToThreads({512})
+          .mapToBlocks({16384})
+          .useSharedMemory(true)
+          .usePrivateMemory(false)
+          .unrollCopyShared(true);
+
+  auto code = codegenMapped(tc, mappingOptions);
+  using tc::code::cuda::kCUBReductionName;
+  EXPECT_TRUE(code.find(kCUBReductionName) != std::string::npos);
+}
+
 static const string kTcMM = R"TC(
 def fun(float(M, K) A, float(K, N) B) -> (C) {
     C(m, n) +=! A(m, r_k) * B(r_k, n)
