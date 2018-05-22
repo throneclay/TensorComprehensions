@@ -169,6 +169,26 @@ void MappedScop::mapToBlocksAndScaleBand(
 namespace {
 
 /*
+ * Return the number of members in "band" starting at "first"
+ * that correspond to a reduction on all statements
+ * with a domain in "domain".
+ */
+size_t numReductionMemberAt(
+    isl::multi_union_pw_aff band,
+    size_t first,
+    isl::union_set domain,
+    const Scop& scop) {
+  size_t end = band.dim(isl::dim_type::set);
+  for (int i = 0; first + i < end; ++i) {
+    auto member = band.get_union_pw_aff(first + i);
+    if (!isReductionMember(member, domain, scop)) {
+      return i;
+    }
+  }
+  return end - first;
+}
+
+/*
  * Given a node in the schedule tree of a mapped scop,
  * insert a mapping filter underneath (if needed) that fixes
  * the remaining thread identifiers starting at "begin" to zero.
@@ -206,11 +226,12 @@ bool MappedScop::detectReductions(detail::ScheduleTree* tree) {
     return false;
   }
 
-  // For now, only support reductions with a sufficient number
-  // of coincident outer band members for the remaining thread identifiers.
-  auto nCoincident = band->nOuterCoincident();
-  if (nCoincident < numThreads.view.size() - 1) {
-    return found;
+  // The number of members mapped to threads needs to be equal
+  // to the block dimension.  Give up early if the total number
+  // of members is smaller than the block dimension.
+  auto nMember = band->nMember();
+  if (nMember < numThreads.view.size()) {
+    return false;
   }
 
   // Look for a reduction band member, but only if it involves
@@ -227,13 +248,22 @@ bool MappedScop::detectReductions(detail::ScheduleTree* tree) {
   updates.foreach_set([&updateIds](isl::set set) {
     updateIds.emplace_back(set.get_tuple_id());
   });
-  // The reduction member needs to appear right underneath
-  // the coincident members.
-  auto reductionDim = nCoincident;
-  auto member = band->mupa_.get_union_pw_aff(reductionDim);
-  if (!isReductionMember(member, updates, scop())) {
+  // The number of members mapped to threads needs to be equal
+  // to the block dimension.  Some of these may be coincident
+  // band members, while at least one of them should be
+  // a reduction band member and they should all be adjacent
+  // in the band.  This means that if any coincident member is involved
+  // the next member(s) should be reduction band members, so
+  // start looking there.
+  auto nCoincident = band->nOuterCoincident();
+  auto n = numReductionMemberAt(band->mupa_, nCoincident, updates, scop());
+  if (n <= 0 || nCoincident + n < numThreads.view.size()) {
     return false;
   }
+  // Take the innermost members of the total set of adjacent mappable
+  // band members.  This does not necessarily involve any
+  // coincident members, even if there are some.
+  auto firstMember = nCoincident + n - numThreads.view.size();
   // Order the init statements (if any) before the update statements
   // to ensure the band from which the reduction band has been split off
   // only contains update statements.
@@ -241,7 +271,7 @@ bool MappedScop::detectReductions(detail::ScheduleTree* tree) {
   if (!inits.is_empty()) {
     orderBefore(scop_->scheduleRoot(), tree, inits);
   }
-  reductionBandUpdates_.emplace(tree, Reduction(updateIds));
+  reductionBandUpdates_.emplace(tree, Reduction(updateIds, firstMember));
   return true;
 }
 
@@ -263,13 +293,14 @@ isl::multi_union_pw_aff MappedScop::reductionMapSchedule(
   // mapped to threads.
   auto reductionSchedule = reductionBand->mupa_;
   auto nMember = reductionBand->nMember();
-  auto reductionDim = reductionBand->nOuterCoincident();
-  auto nMappedThreads = std::min(numThreads.view.size(), reductionDim + 1);
-  CHECK_GE(nMember, reductionDim);
-  reductionSchedule = reductionSchedule.drop_dims(
-      isl::dim_type::set, reductionDim + 1, nMember - (reductionDim + 1));
-  reductionSchedule = reductionSchedule.drop_dims(
-      isl::dim_type::set, 0, reductionDim - nMappedThreads + 1);
+  auto firstMember = reductionBandUpdates_.at(st).firstMember;
+  auto nMappedThreads = numThreads.view.size();
+  auto end = firstMember + nMappedThreads;
+  CHECK_GE(nMember, end);
+  reductionSchedule =
+      reductionSchedule.drop_dims(isl::dim_type::set, end, nMember - end);
+  reductionSchedule =
+      reductionSchedule.drop_dims(isl::dim_type::set, 0, firstMember);
 
   return reductionSchedule;
 }
@@ -355,13 +386,15 @@ size_t MappedScop::mapToThreads(detail::ScheduleTree* band) {
   auto nCanMap = bandNode->nOuterCoincident();
 
   auto isReduction = reductionBandUpdates_.count(band) == 1;
-  // If the band has a detected reduction, then the first member
-  // after the coincident members is the reduction member and
-  // this member has to be mapped as well.
-  // In particular, it will get mapped to threadIdx.x
+  // If the band has a detected reduction, then the members
+  // that should be mapped are those in the region
+  // [firstMember, firstMember + block size].
+  // The logic below will pick the last (at most block size) members
+  // of the initial nCanMap, so set nCanMap to firstMember + block size.
   if (isReduction) {
-    CHECK(reductionBandUpdates_.at(band).separated);
-    nCanMap++;
+    auto& reduction = reductionBandUpdates_.at(band);
+    CHECK(reduction.separated);
+    nCanMap = reduction.firstMember + numThreads.view.size();
   }
 
   if (nCanMap < 1) {
