@@ -23,6 +23,7 @@ set(GTEST_LIBS gtest gtest_main)
 ################################################################################
 set(EXAMPLES_FILES
   batchmatmul
+  convolution
   group_convolution
   tmm
   MLP_model
