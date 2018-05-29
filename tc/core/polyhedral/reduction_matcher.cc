@@ -53,7 +53,7 @@ bool isReductionUpdateId(
     isl::id id,
     const Scop& scop,
     std::vector<size_t>& reductionDims) {
-  CHECK_EQ(scop.halide.statements.count(id), 1u)
+  TC_CHECK_EQ(scop.halide.statements.count(id), 1u)
       << "id is not a statement in scop" << id;
   auto provideNode = scop.halide.statements.at(id);
   if (!isSupportedReduction(provideNode)) {

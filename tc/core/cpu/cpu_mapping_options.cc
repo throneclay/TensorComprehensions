@@ -37,7 +37,7 @@ CpuMappingOptions::CpuMappingOptions()
 CpuMappingOptions::CpuMappingOptions(const std::string& str)
     : CpuMappingOptions() {
   bool parsed = ownedProto_.ParseFromString(str);
-  CHECK(parsed) << "could not parse protobuf string";
+  TC_CHECK(parsed) << "could not parse protobuf string";
 }
 
 CpuMappingOptions::CpuMappingOptions(const CpuMappingOptions& options)

@@ -34,7 +34,7 @@ constexpr static auto GROUP_CONVOLUTION2D_TC = R"TC(
 } // namespace
 
 std::string makeGroupConvolution2DTc(int strideH, int strideW) {
-  CHECK(strideH > 0 && strideW > 0) << "Stride must be greater than 0";
+  TC_CHECK(strideH > 0 && strideW > 0) << "Stride must be greater than 0";
   std::string tcStr;
   tcStr = GROUP_CONVOLUTION2D_TC;
   tcStr = replaceString(tcStr, "<sh>", std::to_string(strideH));

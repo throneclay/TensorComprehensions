@@ -29,7 +29,7 @@ std::vector<TensorInfo> inferOutputTensorInfo(
     const std::string& entryPoint,
     const std::vector<const DLConstTensor*> inputs) {
   auto parsedTcs = detail::parse(tc);
-  CHECK_EQ(parsedTcs.count(entryPoint), 1u)
+  TC_CHECK_EQ(parsedTcs.count(entryPoint), 1u)
       << "attempting to access undefined function " << entryPoint;
   return tc::detail::inferOutputTensorInfo(parsedTcs[entryPoint], inputs);
 }

@@ -271,7 +271,7 @@ def cast(float(M,N) A, int32 four) -> (int32(M,N) output) {
       tc::CudaMappingOptions::makeNaiveMappingOptions(),
       {a, b});
   auto r = outputs[0].sub(at::CUDA(at::kInt).ones({2, 4}) + 4).max().toCFloat();
-  CHECK_EQ(r, 0);
+  TC_CHECK_EQ(r, 0);
 }
 
 int main(int argc, char** argv) {

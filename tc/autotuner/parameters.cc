@@ -97,7 +97,7 @@ RangeParameter& RangeParameter::operator=(const RangeParameter& other) {
 }
 
 void BoolParameter::selectOption(size_t idx) {
-  CHECK_LE(idx, 1u);
+  TC_CHECK_LE(idx, 1u);
   selectValue(idx);
 }
 
@@ -106,7 +106,7 @@ void BoolParameter::selectValue(bool val) {
 }
 
 void RangeParameter::selectOption(size_t idx) {
-  CHECK_LE(idx, values_.size());
+  TC_CHECK_LE(idx, values_.size());
   selected_ = idx;
 }
 
@@ -124,8 +124,8 @@ void RangeParameter::selectFromValue(size_t value) {
 }
 
 void ParameterView::overwrite(const ParameterView& pv) {
-  CHECK_EQ(rangePtr == nullptr, pv.rangePtr == nullptr);
-  CHECK_EQ(boolPtr == nullptr, pv.boolPtr == nullptr);
+  TC_CHECK_EQ(rangePtr == nullptr, pv.rangePtr == nullptr);
+  TC_CHECK_EQ(boolPtr == nullptr, pv.boolPtr == nullptr);
   if (rangePtr) {
     *rangePtr = *pv.rangePtr;
   } else {
@@ -134,7 +134,7 @@ void ParameterView::overwrite(const ParameterView& pv) {
 }
 
 bool ParameterView::isForced() const {
-  CHECK((rangePtr == nullptr) xor (boolPtr == nullptr));
+  TC_CHECK((rangePtr == nullptr) xor (boolPtr == nullptr));
   if (rangePtr) {
     return rangePtr->fixedValue_.hasValue();
   } else {
@@ -143,7 +143,7 @@ bool ParameterView::isForced() const {
 }
 
 size_t ParameterView::numberOptions() const {
-  CHECK((rangePtr == nullptr) xor (boolPtr == nullptr));
+  TC_CHECK((rangePtr == nullptr) xor (boolPtr == nullptr));
   if (rangePtr) {
     return rangePtr->numberOptions();
   } else {
@@ -152,7 +152,7 @@ size_t ParameterView::numberOptions() const {
 }
 
 void ParameterView::selectOption(size_t idx) {
-  CHECK((rangePtr == nullptr) xor (boolPtr == nullptr));
+  TC_CHECK((rangePtr == nullptr) xor (boolPtr == nullptr));
   if (rangePtr) {
     return rangePtr->selectOption(idx);
   } else {
@@ -361,7 +361,7 @@ TuningConfiguration::TuningConfiguration()
         case 1:
           return b0v;
         default:
-          CHECK(false) << "Must have (1-3) block dims, got: "
+          TC_CHECK(false) << "Must have (1-3) block dims, got: "
                        << conf.blockParams.numberDims.value();
       }
       return b0v;
@@ -459,7 +459,7 @@ void CudaDimParameters::setRange(
 namespace {
 template <typename Params, typename View>
 void fromMappingOptions(Params& params, const View& options) {
-  CHECK_LE(options.size(), params.dims.size());
+  TC_CHECK_LE(options.size(), params.dims.size());
   params.numberDims.selectFromValue(options.size());
   for (size_t i = 0; i < options.size(); ++i) {
     params.dims[i].selectFromValue(options[i]);

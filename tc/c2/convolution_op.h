@@ -58,7 +58,7 @@ class TcConvolutionOp : public TcOp<T, Context, Engine> {
       padR = OperatorBase::GetSingleArgument<int>("pad_r", 0);
     }
 
-    CHECK(padT == 0 && padL == 0 && padB == 0 && padR == 0)
+    TC_CHECK(padT == 0 && padL == 0 && padB == 0 && padR == 0)
         << "NYI: padding larger than 0";
 
     this->tc_ = tc::makeConvolution2DTc(strideH, strideW);

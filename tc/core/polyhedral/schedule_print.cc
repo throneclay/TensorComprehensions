@@ -247,7 +247,7 @@ std::ostream& operator<<(
 }
 
 std::ostream& operator<<(std::ostream& os, const ScheduleTree& st) {
-  CHECK(st.elem_.get());
+  TC_CHECK(st.elem_.get());
   os << *st.elem_ << "\n";
   os << st.children_;
 

@@ -71,7 +71,7 @@ void uncheckedRun(
     const Executor& executor,
     const std::vector<at::Tensor>& inputs,
     std::vector<at::Tensor>& outputs) {
-  CHECK_GE(outputs.size(), 1u);
+  TC_CHECK_GE(outputs.size(), 1u);
   std::vector<const void*> rawInputs(inputs.size(), nullptr);
   std::vector<void*> rawOutputs(outputs.size(), nullptr);
   for (size_t i = 0; i < inputs.size(); ++i) {

@@ -212,7 +212,7 @@ def convolution(float(N,C,H,W) I, float(O,C,KH,KW) W1, float(O) B) -> (tmp, O1)
       B.data<float>(),
       tmp.data<float>(),
       output.data<float>());
-  CHECK_EQ(output.ndimension(), 4);
+  TC_CHECK_EQ(output.ndimension(), 4);
   checkRtol(output - expected, {I, W1, B}, C * KH * KW, 1e-6);
 }
 

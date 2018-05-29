@@ -112,10 +112,10 @@ CudaCompilationResult CudaBackend::compileWithTcMapper(
 void CudaTcExecutor::uncheckedRun(
     const std::vector<const void*>& inputs,
     const std::vector<void*>& outputs) const {
-  CHECK(rtcFun_) << "No rtcFun_ attached, cannot launch";
+  TC_CHECK(rtcFun_) << "No rtcFun_ attached, cannot launch";
   cudaStream_t stream = 0;
-  CHECK_NE(grid_.view[0], 0u) << "Grid dims are not set up";
-  CHECK_NE(block_.view[0], 0u) << "Block dims are not set up";
+  TC_CHECK_NE(grid_.view[0], 0u) << "Grid dims are not set up";
+  TC_CHECK_NE(block_.view[0], 0u) << "Block dims are not set up";
   rtcFun_->Launch(
       grid_.view.extractDefaultedArray(),
       block_.view.extractDefaultedArray(),
@@ -130,10 +130,10 @@ ProfilingInfo CudaTcExecutor::profileUnchecked(
     const std::vector<const void*>& inputs,
     const std::vector<void*>& outputs) const {
   auto start = std::chrono::system_clock::now();
-  CHECK(rtcFun_) << "No rtcFun_ attached, cannot launch";
+  TC_CHECK(rtcFun_) << "No rtcFun_ attached, cannot launch";
   cudaStream_t stream = 0;
-  CHECK_NE(grid_.view[0], 0u) << "Grid dims are not set up";
-  CHECK_NE(block_.view[0], 0u) << "Block dims are not set up";
+  TC_CHECK_NE(grid_.view[0], 0u) << "Grid dims are not set up";
+  TC_CHECK_NE(block_.view[0], 0u) << "Block dims are not set up";
   Duration kernelRuntime(rtcFun_->Launch(
       grid_.view.extractDefaultedArray(),
       block_.view.extractDefaultedArray(),

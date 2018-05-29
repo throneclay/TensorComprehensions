@@ -49,7 +49,7 @@ inline DLDataType getDLDataType(const TypeMeta& meta) {
   } else if (meta.Match<int>()) {
     res.code = DLDataTypeCode::kDLInt;
   } else {
-    CHECK(false) << "NYI: getDLDataType(caffe2::Meta::Make<" << meta.name()
+    TC_CHECK(false) << "NYI: getDLDataType(caffe2::Meta::Make<" << meta.name()
                  << ">))";
   }
   res.bits = 32;

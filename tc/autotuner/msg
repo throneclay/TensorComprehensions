@@ -1,0 +1,1 @@
+#259 switched from TC function names to using whole TCs (canonicalized) as part of compilation cache keys. However, the final step of the autotuner, that is retrieving the best found options, was not updated and it used just the function name. As a result, an empty optional<CudaMappingOptions> was always returned.

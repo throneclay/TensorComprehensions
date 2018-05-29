@@ -66,7 +66,7 @@ isl::schedule_node insertBranch(
   auto filters = isl::union_set_list(node.get_ctx(), st->numChildren());
   for (size_t i = 0; i < pos.size(); ++i) {
     auto filter = st->child({pos[i]})->elemAsBase<ScheduleTreeElemFilter>();
-    CHECK(filter);
+    TC_CHECK(filter);
     filters = filters.add(filter->filter_);
   }
   if (st->elemAs<ScheduleTreeElemSet>()) {
@@ -100,10 +100,10 @@ std::vector<size_t> findCorePositions(
     const ScheduleTree* st,
     isl::union_set domain) {
   std::vector<size_t> positions;
-  CHECK(st->elemAs<ScheduleTreeElemSequence>());
+  TC_CHECK(st->elemAs<ScheduleTreeElemSequence>());
   for (size_t i = 0; i < st->numChildren(); ++i) {
     auto filter = st->child({i})->elemAsBase<ScheduleTreeElemFilter>();
-    CHECK(filter);
+    TC_CHECK(filter);
     if (!filter->filter_.intersect(domain).is_empty()) {
       positions.emplace_back(i);
     }
@@ -121,7 +121,7 @@ isl::schedule_node graftFromFilterSubtree(
     const ScheduleTree* st,
     isl::union_map extension) {
   auto filter = st->elemAsBase<ScheduleTreeElemFilter>();
-  CHECK(filter);
+  TC_CHECK(filter);
   auto filterExtension = extension.intersect_range(filter->filter_);
   auto extensionNode = isl::schedule_node::from_extension(filterExtension);
   return extendChild(extensionNode, st);
@@ -145,7 +145,7 @@ isl::schedule_node insertExtension(
   auto domain = node.get_universe_domain();
   auto child = st->child({0});
   auto corePos = findCorePositions(child, domain);
-  CHECK(!corePos.empty());
+  TC_CHECK(!corePos.empty());
   node = insertBranch(node, child, corePos);
 
   auto extension = st->elemAs<ScheduleTreeElemExtension>()->extension_;
@@ -245,7 +245,7 @@ isl::schedule_node extendChild(
 isl::schedule toIslSchedule(const ScheduleTree* root) {
   checkValidIslSchedule(root);
   auto domain = root->elemAs<ScheduleTreeElemDomain>();
-  CHECK(domain) << "Root node should be domain node" << *root;
+  TC_CHECK(domain) << "Root node should be domain node" << *root;
   auto node = isl::schedule_node::from_domain(domain->domain_);
   node = extendChild(node, root);
   return node.get_schedule();
@@ -370,7 +370,7 @@ bool refersToUndefinedParameters(
     paramSpace = paramSpace.get() ? paramSpace.align_params(space) : space;
   }
 
-  CHECK(paramSpace.get()) << "no parent context or domain node found";
+  TC_CHECK(paramSpace.get()) << "no parent context or domain node found";
   if (!paramSpace.get()) {
     return true;
   }
@@ -416,7 +416,7 @@ void checkValidIslSchedule(const ScheduleTree* root_) {
   // 1. The root node is always of type domain or extension.
   auto domainRoot = root_->elemAs<ScheduleTreeElemDomain>();
   auto extensionRoot = root_->elemAs<ScheduleTreeElemDomain>();
-  CHECK(domainRoot || extensionRoot)
+  TC_CHECK(domainRoot || extensionRoot)
       << "root must be a domain or an extension" << *root_;
 
   for (auto node : ScheduleTree::collect(root_)) {
@@ -440,25 +440,25 @@ void checkValidIslSchedule(const ScheduleTree* root_) {
     }
 
     if (!nodeIsSet && !nodeIsSequence) {
-      CHECK_LE(nChildren, 1u)
+      TC_CHECK_LE(nChildren, 1u)
           << "only sequence or set nodes can have multiple children" << *node;
     } else {
       auto filters = isl::null<isl::union_set>();
       for (auto child : node->children()) {
         auto filterElem = child->elemAsBase<ScheduleTreeElemFilter>();
         auto childIsFilter = filterElem != nullptr;
-        CHECK(childIsFilter)
+        TC_CHECK(childIsFilter)
             << "only filter nodes allowed as children of sequence or set node"
             << *child;
 
         filters = filters.get() ? filters.unite(filterElem->filter_)
                                 : filterElem->filter_;
       }
-      CHECK(filters.get()) << "set/sequence node must have at least one child"
+      TC_CHECK(filters.get()) << "set/sequence node must have at least one child"
                            << *node;
 
       // 5. The union of filters must cover all active domain points.
-      CHECK(activeInstances.is_subset(filters))
+      TC_CHECK(activeInstances.is_subset(filters))
           << "filters must cover all active domain points; active "
           << activeInstances << " filtered: " << filters << " in\n"
           << *node;
@@ -467,7 +467,7 @@ void checkValidIslSchedule(const ScheduleTree* root_) {
     // 3. Nodes should not refer to parameters that are not declared in context
     // nodes above.
     bool usesUndefinedParams = refersToUndefinedParameters(root_, node);
-    CHECK(!usesUndefinedParams)
+    TC_CHECK(!usesUndefinedParams)
         << "non-context node introduces new parameters" << *node;
 
     // 7. Band schedules should be total on all active domain points.
@@ -476,7 +476,7 @@ void checkValidIslSchedule(const ScheduleTree* root_) {
     if (auto bandElem = node->elemAs<ScheduleTreeElemBand>()) {
       auto scheduleDefinitionDomain = bandElem->mupa_.domain();
       if (!scheduleDefinitionDomain.is_params()) {
-        CHECK(activeInstances.is_subset(scheduleDefinitionDomain))
+        TC_CHECK(activeInstances.is_subset(scheduleDefinitionDomain))
             << "schedule should be total on the active domain points: active"
             << activeInstances
             << " schedule defined over: " << scheduleDefinitionDomain << " in\n"
@@ -491,7 +491,7 @@ void checkValidIslSchedule(const ScheduleTree* root_) {
       auto introducedInstances =
           extensionElem->extension_
               .range(); // FIXME: restrict domain to the partial schedule??
-      CHECK(introducedInstances.intersect(activeInstances).is_empty())
+      TC_CHECK(introducedInstances.intersect(activeInstances).is_empty())
           << "extension node should not introduce elements that are already "
              "active domain elements: active "
           << activeInstances << " introduced: " << introducedInstances
@@ -501,7 +501,7 @@ void checkValidIslSchedule(const ScheduleTree* root_) {
       auto depth = node->scheduleDepth(root_);
       auto extension = extensionElem->extension_;
       for (auto const& e : isl::UnionAsVector<isl::union_map>(extension)) {
-        CHECK_EQ(depth, e.dim(isl::dim_type::in))
+        TC_CHECK_EQ(depth, e.dim(isl::dim_type::in))
             << "the input dimensionality of the extension map should "
                "correspond to the schedule depth"
             << *node;
@@ -511,7 +511,7 @@ void checkValidIslSchedule(const ScheduleTree* root_) {
     // 10. Anchored nodes match the flattened space of the outer bands.
     if (auto contextElem = node->elemAs<ScheduleTreeElemContext>()) {
       auto depth = node->scheduleDepth(root_);
-      CHECK_EQ(depth, contextElem->context_.dim(isl::dim_type::set))
+      TC_CHECK_EQ(depth, contextElem->context_.dim(isl::dim_type::set))
           << "the dimensionality of the context should correspond "
              "to the schedule depth"
           << *node;

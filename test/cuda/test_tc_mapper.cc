@@ -363,7 +363,7 @@ def fun(float(B, R) LUT, int32(B, N) I) -> (O) {
         float correct = 0;
         for (int r = 0; r < R; r++) {
           int idx = IAccessor[b][n];
-          CHECK(idx >= 0 && idx < B);
+          TC_CHECK(idx >= 0 && idx < B);
           correct += LUTAccessor[idx][r];
         }
         OAccessor[b][n] -= correct;

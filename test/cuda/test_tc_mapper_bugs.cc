@@ -771,7 +771,7 @@ TEST(Convolution, NestedExpressions) {
   auto outputs = tc::aten::prepareOutputs(TC, convolution, inputs);
   tc::aten::run(*pExecutor, inputs, outputs);
   auto B = outputs[0];
-  CHECK_EQ(at::Scalar(B[10]).toFloat(), 1);
+  TC_CHECK_EQ(at::Scalar(B[10]).toFloat(), 1);
 }
 
 // Previous versions of TC would map the reduction in the code below

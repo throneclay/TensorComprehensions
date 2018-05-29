@@ -307,7 +307,7 @@ template <typename Backend>
 void OptionsCache<Backend>::fromProtobuf(
     const typename Backend::OptionsCacheProtoType& proto) {
   std::lock_guard<std::mutex> lock(mutex);
-  CHECK_EQ(proto.keys().size(), proto.values().size());
+  TC_CHECK_EQ(proto.keys().size(), proto.values().size());
   for (int i = 0; i < proto.keys().size(); ++i) {
     OptionsCacheKey key(OptionsCacheKey::fromProtobuf(proto.keys().Get(i)));
     OptionsCacheValue<Backend> value(

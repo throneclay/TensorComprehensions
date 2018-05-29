@@ -119,7 +119,7 @@ def group_normalization(
       geneticAutotuneATen(tc);
   auto bestOption = geneticAutotuneATen.tune(
       "group_normalization", {I, gamma, beta}, baseOptions, FLAGS_proto_path);
-  CHECK_GT(bestOption.size(), 0u);
+  TC_CHECK_GT(bestOption.size(), 0u);
 
   // 5. Compile and run the TC with the best option.
   // Outputs get allocated; could also be pre-allocated and passed.

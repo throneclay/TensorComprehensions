@@ -57,7 +57,7 @@ def tensordot(float(N, C1, C2, H, W) I0,
       geneticAutotuneATen(tc);
   auto bestOption = geneticAutotuneATen.tune(
       "tensordot", {I0, I1}, naiveOptions, FLAGS_proto_path);
-  CHECK_GT(bestOption.size(), 0u);
+  TC_CHECK_GT(bestOption.size(), 0u);
 
   // 4. Compile and run the TC with the best option.
   // Outputs get allocated; could also be pre-allocated and passed.
