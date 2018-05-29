@@ -29,6 +29,7 @@ set(CORE_TEST_FILES
   test_core
   test_inference
   test_tc2halide
+  test_check
 )
 
 foreach(i ${CORE_TEST_FILES})
